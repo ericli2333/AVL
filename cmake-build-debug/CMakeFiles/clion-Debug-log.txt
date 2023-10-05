@@ -11,6 +11,6 @@
 -- Check for working CXX compiler: D:/Environment/mingw64/bin/c++.exe - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
--- Configuring done
--- Generating done
+-- Configuring done (2.5s)
+-- Generating done (0.0s)
 -- Build files have been written to: E:/CodeField/CLion_Project/AVL/cmake-build-debug

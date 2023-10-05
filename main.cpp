@@ -1,9 +1,34 @@
 #include <bits/stdc++.h>
+
+#define DEBUG
+//#define TEST
+#define SUBMIT
+
+#include <utility>
 /*
  * 记住，bf是右减左
  */
 
 using namespace std;
+
+class Exception : std::exception {
+private:
+    std::string msg;
+    int code;
+public:
+    static const int NO_NODE_TO_DELETE = 0x1;
+    static const int CANNOT_REACH_HERE = 0x2;
+
+    explicit Exception(const char *message, int code = 0) : msg(message), code(code) {}
+
+    explicit Exception(std::string message, int code = 0) : msg(std::move(message)), code(code) {}
+
+    [[nodiscard]] const char *what() const noexcept override {
+        return msg.c_str();
+    }
+
+    int getcode() { return code; }
+};
 
 struct Node {
     Node *leftChild;
@@ -12,7 +37,7 @@ struct Node {
     int value;
     int bf;
 
-    Node(int val_ = 0) : value(val_), leftChild(nullptr), rightChild(nullptr), parent(nullptr), bf(0) {};
+    explicit Node(int val_ = 0) : value(val_), leftChild(nullptr), rightChild(nullptr), parent(nullptr), bf(0) {};
 
     void print() {
         cout << "Node at " << this << " Value = " << value << " bf = " << bf << endl;
@@ -26,11 +51,17 @@ private:
     void roteRight(Node *A, Node *B);
     void print(Node *node);
     void print2(Node *node);
+    void printAns(Node *node);
+    static bool isShorterOnLeft(Node *node);
+    static bool isShorterOnRight(Node *node);
+    Node *findNoShorter(int val, Node *&toDelete, Node *&theNode);
 public:
-    bool insert(int val);
+    bool Insert(int val);
+    bool Delete(int val_);
     AVL();
     void print();
     void print2();
+    void printAns();
 };
 
 AVL::AVL() : root(nullptr) {}
@@ -58,7 +89,8 @@ void AVL::roteLeft(Node *A, Node *C) {
         C->parent = nullptr;
         if (D != nullptr)
             D->parent = A;
-        E->parent = C;
+        if (E != nullptr)
+            E->parent = C;
         this->root = C;
     } else {
         Node *parent = A->parent;
@@ -78,7 +110,8 @@ void AVL::roteLeft(Node *A, Node *C) {
         C->parent = parent;
         if (D != nullptr)
             D->parent = A;
-        E->parent = C;
+        if (E != nullptr)
+            E->parent = C;
         //连接上一个父节点
         if (isLeft) {
             parent->leftChild = C;
@@ -94,7 +127,7 @@ void AVL::roteLeft(Node *A, Node *C) {
 void AVL::roteRight(Node *A, Node *B) {
 //    cout << "rote right \n";
     if (A == this->root) {
-        //TODO:记得处理A是根节点
+        //处理A是根节点
         Node *D = B->leftChild;
         Node *E = B->rightChild;
         Node *C = A->rightChild;
@@ -128,7 +161,8 @@ void AVL::roteRight(Node *A, Node *B) {
         B->parent = parent;
         if (C != nullptr)
             C->parent = A;
-        D->parent = B;
+        if (D != nullptr)
+            D->parent = B;
         if (E != nullptr)
             E->parent = A;
         if (isLeft) {
@@ -139,7 +173,7 @@ void AVL::roteRight(Node *A, Node *B) {
     }
 }
 
-bool AVL::insert(int val) {
+bool AVL::Insert(int val) {
     Node *insertNode = new Node(val);
     //处理空树的情况
     if (this->root == nullptr) {
@@ -149,12 +183,10 @@ bool AVL::insert(int val) {
         Node *cur = this->root;
         Node *parentOfCur = nullptr;
         Node *lastNonZero = nullptr;
-        Node *parentOfLastNonZero = nullptr;
         //搜索插入节点的位置
         while (cur != nullptr) {
             if (cur->bf != 0) {
                 lastNonZero = cur;
-                parentOfLastNonZero = parentOfCur;
             }
             if (cur->value < val) {
                 parentOfCur = cur;
@@ -206,9 +238,15 @@ bool AVL::insert(int val) {
                     Node *D = C->leftChild;
                     roteRight(C, D);
                     roteLeft(A, D);
-                    A->bf = -1;
-                    D->bf = 0;
-                    C->bf = 0;
+                    if (D->bf == 0) {
+                        A->bf = D->bf = C->bf = 0;
+                    } else if (D->bf == 1) {
+                        A->bf = -1;
+                        D->bf = C->bf = 0;
+                    } else if (D->bf == -1) {
+                        C->bf = -1;
+                        A->bf = D->bf = 0;
+                    }
                 }
             } else if (lastNonZero->bf == -2) {
                 if (lastNonZero->rightChild->bf == -1) {
@@ -223,9 +261,16 @@ bool AVL::insert(int val) {
                     Node *E = B->rightChild;
                     roteLeft(B, E);
                     roteRight(A, E);
-                    A->bf = -1;
-                    B->bf = 0;
-                    E->bf = 0;
+                    if (E->bf == 0) {
+                        A->bf = B->bf = E->bf = 0;
+                    } else if (E->bf == 1) {
+                        E->bf = A->bf = 0;
+                        B->bf = -1;
+                    } else if (E->bf == -1) {
+                        A->bf = -1;
+                        B->bf = 0;
+                        E->bf = 0;
+                    } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
                 }
             }
         } else {
@@ -333,28 +378,310 @@ void AVL::print2(Node *node) {
     print2(node->rightChild);
 }
 
+bool AVL::Delete(int val) {
+#ifdef DEBUG
+    cout << "Start delete\n";
+#endif
+    Node *toDelete = nullptr;
+    Node *noShorter = nullptr;
+    Node *theNode = nullptr;
+    try {
+        noShorter = findNoShorter(val, toDelete, theNode);
+    }
+    catch (Exception &exp) {
+        if (exp.getcode() & Exception::NO_NODE_TO_DELETE) {
+            return false;
+        } else throw std::move(exp);
+    }
+#ifdef DEBUG
+    cout << "no shorter node is\n";
+    noShorter->print();
+    cout << "to delete node is\n";
+    toDelete->print();
+#endif
+    int val_ = toDelete->value;
+    Node *cur = noShorter;
+    while (true) {
+//        cout << "now cur is\n";
+//        cur->print();
+        if (cur == toDelete) {
+            bool isLeft = (cur == cur->parent->leftChild);
+            if (cur->leftChild == nullptr && cur->rightChild == nullptr) {
+                if (isLeft) cur->parent->leftChild = nullptr;
+                else cur->parent->rightChild = nullptr;
+                delete cur;
+                theNode->value = val_;
+                return true;
+            } else if (cur->leftChild == nullptr) {
+                if (isLeft) cur->parent->leftChild = cur->rightChild;
+                else cur->parent->rightChild = cur->rightChild;
+                delete cur;
+                theNode->value = val_;
+                return true;
+            } else if (cur->rightChild == nullptr) {
+                if (isLeft) cur->parent->leftChild = cur->leftChild;
+                else cur->parent->rightChild = cur->leftChild;
+                delete cur;
+                theNode->value = val_;
+                return true;
+            } else throw Exception("delete node with two child", Exception::CANNOT_REACH_HERE);
+            break;
+        }
+        if (cur->value > val_) {
+            if (cur->bf <= 0) {
+                cur->bf++;
+                cur = cur->leftChild;
+            } else {
+                if (cur->rightChild->bf == 1) {
+                    Node *P = cur;
+                    Node *Q = cur->rightChild;
+                    roteLeft(P, Q);
+                    P->bf = 0;
+                    Q->bf = 0;
+                } else if (cur->rightChild->bf == -1) {
+                    Node *P = cur;
+                    Node *Q = cur->rightChild;
+                    Node *R = Q->leftChild;
+                    roteRight(Q, R);
+                    roteLeft(P, R);
+                    P->bf = R->bf == 1 ? -1 : 0;
+                    Q->bf = R->bf == -1 ? 1 : 0;
+                    R->bf = 0;
+                } else {
+                    Node *P = cur;
+                    Node *Q = P->rightChild;
+                    roteLeft(P, Q);
+                    Q->bf = -1;
+                    P->bf = 1;
+                }
+                cur = cur->leftChild;
+            }
+        } else if (cur->value < val_) {
+            if (cur->bf >= 0) {
+                cur->bf--;
+                cur = cur->rightChild;
+            } else {
+                if (cur->leftChild->bf == -1) {
+                    Node *P = cur;
+                    Node *Q = cur->leftChild;
+                    roteRight(P, Q);
+                    P->bf = 0;
+                    Q->bf = 0;
+                } else if (cur->leftChild->bf == 1) {
+                    Node *P = cur;
+                    Node *Q = cur->leftChild;
+                    Node *R = Q->rightChild;
+                    roteLeft(Q, R);
+                    roteRight(P, R);
+                    if (R->bf == 0) {
+                        P->bf = Q->bf = R->bf = 0;
+                    } else if (R->bf == 1) {
+                        R->bf = 0;
+                        P->bf = 0;
+                        Q->bf = -1;
+                    } else {
+                        R->bf = 0;
+                        Q->bf = 0;
+                        P->bf = 1;
+                    }
+                } else {
+                    Node *P = cur;
+                    Node *Q = P->leftChild;
+                    roteRight(P, Q);
+                    Q->bf = 1;
+                    P->bf = -1;
+                }
+                cur = cur->rightChild;
+            }
+        } else {
+            if (cur == toDelete) {
+                bool isLeft = (cur == cur->parent->leftChild);
+                if (cur->leftChild == nullptr && cur->rightChild == nullptr) {
+                    if (isLeft) cur->parent->leftChild = nullptr;
+                    else cur->parent->rightChild = nullptr;
+                    delete cur;
+                    return true;
+                } else if (cur->leftChild == nullptr) {
+                    if (isLeft) cur->parent->leftChild = cur->rightChild;
+                    else cur->parent->rightChild = cur->rightChild;
+                    delete cur;
+                    return true;
+                } else if (cur->rightChild == nullptr) {
+                    throw Exception("should not have right child", Exception::CANNOT_REACH_HERE);
+                } else throw Exception("delete node with two child", Exception::CANNOT_REACH_HERE);
+            } else {
+                throw Exception("error value", Exception::CANNOT_REACH_HERE);
+            }
+        }
+    }
+    theNode->value = val_;
+    return true;
+}
+
+bool AVL::isShorterOnLeft(Node *node) {
+    if (node->bf == -1) return true;
+    else if (node->bf == 1) {
+        if (node->rightChild != nullptr && node->rightChild->bf != 0)
+            return true;
+    }
+    return false;
+}
+
+bool AVL::isShorterOnRight(Node *node) {
+    if (node->bf == 1) return true;
+    else if (node->bf == -1) {
+        if (node->leftChild != nullptr && node->leftChild->bf != 0)
+            return true;
+    }
+    return false;
+}
+
+//预处理阶段，寻找不再变矮的最小子树
+Node *AVL::findNoShorter(int val, Node *&toDelete, Node *&theNode) {
+    stack<Node *> stack1;
+    Node *noShorter = nullptr;
+//    Node *toDelete = nullptr;
+    Node *cur = this->root;
+    bool isFind = false;
+    while (cur != nullptr) {
+        stack1.push(cur);
+        if (cur->value > val) {
+            cur = cur->leftChild;
+        } else if (cur->value < val) {
+            cur = cur->rightChild;
+        } else {
+            isFind = true;
+            theNode = cur;
+            if (cur->leftChild == nullptr || cur->rightChild == nullptr) {
+                toDelete = cur;
+                break;
+            } else {
+                cur = cur->leftChild;
+                stack1.push(cur);
+                while (cur->rightChild != nullptr) {
+                    cur = cur->rightChild;
+                    stack1.push(cur);
+                }
+                toDelete = cur;
+                break;
+            }
+        }
+    }
+    if (!isFind) {
+        throw Exception("No node to delete", Exception::NO_NODE_TO_DELETE);
+    } else {
+        Node *next = nullptr;
+        bool shorter = true;
+        while (!stack1.empty()) {
+            cur = stack1.top();
+            stack1.pop();
+            if (cur == toDelete) {
+                next = cur;
+                continue;
+            }
+            if (cur->leftChild == next) {
+                if (shorter && (cur->bf == -1 || (cur->bf == 1 && cur->rightChild->bf != 0))) {
+                    shorter = true;
+                } else {
+                    shorter = false;
+                    while (!stack1.empty()) stack1.pop();
+                    noShorter = cur;
+                    break;
+                }
+            } else if (cur->rightChild == next) {
+                if (shorter && (cur->bf == 1 || (cur->bf == -1 && cur->rightChild->bf != 0))) {
+                    shorter = true;
+                } else {
+                    shorter = false;
+                    while (!stack1.empty()) stack1.pop();
+                    noShorter = cur;
+                    break;
+                }
+            }
+            next = cur;
+        }
+    }
+    if (noShorter == nullptr) noShorter = this->root;
+    return noShorter;
+}
+
+void AVL::printAns() {
+    printAns(this->root);
+}
+
+void AVL::printAns(Node *node) {
+    if (node == nullptr) return;
+    cout << "(";
+    if (node->leftChild != nullptr) {
+        printAns(node->leftChild);
+    }
+    cout << node->value << "," << node->bf;
+    if (node->rightChild != nullptr) {
+        printAns(node->rightChild);
+    }
+    cout << ")";
+}
+
 int main() {
     AVL avl;
-//    avl.insert(1);
+//    avl.Insert(1);
 //    avl.print2();
 //    cout << "Insert 3" << endl;
-//    avl.insert(3);
+//    avl.Insert(3);
 //    avl.print2();
 //    cout << "Insert 5" << endl;
-//    avl.insert(5);
+//    avl.Insert(5);
 //    avl.print2();
 //    cout << "Insert 2" << endl;
-//    avl.insert(2);
+//    avl.Insert(2);
 //    avl.print2();
 //    cout << "Insert 4" << endl;
-//    avl.insert(4);
+//    avl.Insert(4);
 //    for (int i = 6; i < 10; ++i) {
-//        avl.insert(i);
+//        avl.Insert(i);
 //    }
-    for (int i = 10; i > 0; --i) {
-        avl.insert(i);
-    }
+#ifdef TEST
+    avl.Insert(1);
+    avl.Insert(3);
+    avl.Insert(2);
+    avl.Insert(4);
     avl.print();
     avl.print2();
+    try {
+        avl.Delete(2);
+        avl.print();
+        avl.print2();
+    } catch (Exception &exp) {
+        cout << exp.what() << endl;
+    }
+#endif
+#ifdef SUBMIT
+    int N;
+    AVL avl1;
+    cin >> N;
+    int operation, value;
+    for (int i = 0; i < N; ++i) {
+        cin >> operation >> value;
+#ifdef DEBUG
+        cout << operation << ' ' << value << endl;
+#endif
+        if (operation == 1) {
+#ifdef DEBUG
+            cout << "Insert" << endl;
+#endif
+            avl1.Insert(value);
+#ifdef DEBUG
+            avl1.print2();
+#endif
+            avl1.printAns();
+        } else {
+#ifdef DEBUG
+            cout << "Delete" << endl;
+#endif
+            avl1.Delete(value);
+            avl1.printAns();
+        }
+    }
+#endif
     return 0;
 }
