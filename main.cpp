@@ -1,8 +1,9 @@
 #include <bits/stdc++.h>
 
-#define DEBUG
+//#define DEBUG
 //#define TEST
 #define SUBMIT
+#define T2
 
 #include <utility>
 /*
@@ -10,6 +11,7 @@
  */
 
 using namespace std;
+
 
 class Exception : std::exception {
 private:
@@ -232,7 +234,7 @@ bool AVL::Insert(int val) {
                     //调整bf
                     A->bf = 0;
                     C->bf = 0;
-                } else {
+                } else if (lastNonZero->rightChild->bf == -1){
                     Node *A = lastNonZero;
                     Node *C = A->rightChild;
                     Node *D = C->leftChild;
@@ -247,15 +249,22 @@ bool AVL::Insert(int val) {
                         C->bf = -1;
                         A->bf = D->bf = 0;
                     }
+                } else {
+                    Node *A = lastNonZero;
+                    Node *C = lastNonZero->rightChild;
+                    roteLeft(lastNonZero, lastNonZero->rightChild);
+                    //调整bf
+                    A->bf = 1;
+                    C->bf = -1;
                 }
             } else if (lastNonZero->bf == -2) {
-                if (lastNonZero->rightChild->bf == -1) {
+                if (lastNonZero->leftChild->bf == -1) {
                     Node *A = lastNonZero;
                     Node *B = A->leftChild;
                     roteRight(A, B);
                     A->bf = 0;
                     B->bf = 0;
-                } else {
+                } else if (lastNonZero->leftChild->bf == 1){
                     Node *A = lastNonZero;
                     Node *B = A->leftChild;
                     Node *E = B->rightChild;
@@ -271,6 +280,12 @@ bool AVL::Insert(int val) {
                         B->bf = 0;
                         E->bf = 0;
                     } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
+                } else {
+                    Node *A = lastNonZero;
+                    Node *B = A->leftChild;
+                    roteRight(A, B);
+                    A->bf = -1;
+                    B->bf = 1;
                 }
             }
         } else {
@@ -299,15 +314,28 @@ bool AVL::Insert(int val) {
                     //调整bf
                     A->bf = 0;
                     C->bf = 0;
-                } else {
+                } else if (lastNonZero->rightChild->bf == -1){
                     Node *A = lastNonZero;
                     Node *C = A->rightChild;
                     Node *D = C->leftChild;
                     roteRight(C, D);
                     roteLeft(A, D);
-                    A->bf = -1;
-                    D->bf = 0;
-                    C->bf = 0;
+                    if (D->bf == 0) {
+                        A->bf = D->bf = C->bf = 0;
+                    } else if (D->bf == 1) {
+                        A->bf = -1;
+                        D->bf = C->bf = 0;
+                    } else if (D->bf == -1) {
+                        C->bf = -1;
+                        A->bf = D->bf = 0;
+                    }
+                } else {
+                    Node *A = lastNonZero;
+                    Node *C = lastNonZero->rightChild;
+                    roteLeft(lastNonZero, lastNonZero->rightChild);
+                    //调整bf
+                    A->bf = 1;
+                    C->bf = -1;
                 }
             } else if (lastNonZero->bf == -2) {
                 if (lastNonZero->leftChild->bf == -1) {
@@ -316,15 +344,28 @@ bool AVL::Insert(int val) {
                     roteRight(A, B);
                     A->bf = 0;
                     B->bf = 0;
-                } else {
+                } else if (lastNonZero->leftChild->bf == 1){
                     Node *A = lastNonZero;
                     Node *B = A->leftChild;
                     Node *E = B->rightChild;
                     roteLeft(B, E);
                     roteRight(A, E);
+                    if (E->bf == 0) {
+                        A->bf = B->bf = E->bf = 0;
+                    } else if (E->bf == 1) {
+                        E->bf = A->bf = 0;
+                        B->bf = -1;
+                    } else if (E->bf == -1) {
+                        A->bf = -1;
+                        B->bf = 0;
+                        E->bf = 0;
+                    } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
+                } else {
+                    Node *A = lastNonZero;
+                    Node *B = A->leftChild;
+                    roteRight(A, B);
                     A->bf = -1;
-                    B->bf = 0;
-                    E->bf = 0;
+                    B->bf = 1;
                 }
             }
         }
@@ -607,6 +648,7 @@ Node *AVL::findNoShorter(int val, Node *&toDelete, Node *&theNode) {
 
 void AVL::printAns() {
     printAns(this->root);
+    cout << '\n';
 }
 
 void AVL::printAns(Node *node) {
@@ -623,7 +665,24 @@ void AVL::printAns(Node *node) {
 }
 
 int main() {
-    AVL avl;
+#ifdef T2
+    // 备份cin和cout的默认buf
+    streambuf *cin_backup, *cout_backup;
+    cin_backup = cin.rdbuf();
+    cout_backup = cout.rdbuf();
+
+    // 打开要参与重定向的文件
+    fstream in, out;
+    in.open("../2.in", ios::in);
+    out.open("../my2.out", ios::out);
+    if (in.fail() || out.fail())
+        return -1;
+
+    // 将in.txt内容重定向到cin
+    // 将cout重定向到out.txt
+    cin.rdbuf(in.rdbuf());
+    cout.rdbuf(out.rdbuf());
+#endif
 //    avl.Insert(1);
 //    avl.print2();
 //    cout << "Insert 3" << endl;
@@ -641,6 +700,7 @@ int main() {
 //        avl.Insert(i);
 //    }
 #ifdef TEST
+    AVL avl;
     avl.Insert(1);
     avl.Insert(3);
     avl.Insert(2);
