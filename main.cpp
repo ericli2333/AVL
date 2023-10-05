@@ -1,5 +1,5 @@
 #include <bits/stdc++.h>
-
+//TODO:插入部分还有一个地方的bf修正有问题
 //#define DEBUG
 //#define TEST
 #define SUBMIT
@@ -212,161 +212,86 @@ bool AVL::Insert(int val) {
 //            cout << "Modify on root \n";
             cur = this->root;
             lastNonZero = root;
-            while (cur != nullptr) {
-                if (cur->value < val) {
-                    cur->bf++;
-                    cur = cur->rightChild;
-                } else if (cur->value == val) {
-                    //注意这里应该是搜索到了插入的节点
-                    break;
-                } else {
-                    cur->bf--;
-                    cur = cur->leftChild;
-                }
-            }
-//            cout << "The bf of last none zero is " << lastNonZero->bf << endl;
-            if (lastNonZero->bf == 2) {
-
-                if (lastNonZero->rightChild->bf == 1) {
-                    Node *A = lastNonZero;
-                    Node *C = lastNonZero->rightChild;
-                    roteLeft(lastNonZero, lastNonZero->rightChild);
-                    //调整bf
-                    A->bf = 0;
-                    C->bf = 0;
-                } else if (lastNonZero->rightChild->bf == -1){
-                    Node *A = lastNonZero;
-                    Node *C = A->rightChild;
-                    Node *D = C->leftChild;
-                    roteRight(C, D);
-                    roteLeft(A, D);
-                    if (D->bf == 0) {
-                        A->bf = D->bf = C->bf = 0;
-                    } else if (D->bf == 1) {
-                        A->bf = -1;
-                        D->bf = C->bf = 0;
-                    } else if (D->bf == -1) {
-                        C->bf = -1;
-                        A->bf = D->bf = 0;
-                    }
-                } else {
-                    Node *A = lastNonZero;
-                    Node *C = lastNonZero->rightChild;
-                    roteLeft(lastNonZero, lastNonZero->rightChild);
-                    //调整bf
-                    A->bf = 1;
-                    C->bf = -1;
-                }
-            } else if (lastNonZero->bf == -2) {
-                if (lastNonZero->leftChild->bf == -1) {
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    roteRight(A, B);
-                    A->bf = 0;
-                    B->bf = 0;
-                } else if (lastNonZero->leftChild->bf == 1){
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    Node *E = B->rightChild;
-                    roteLeft(B, E);
-                    roteRight(A, E);
-                    if (E->bf == 0) {
-                        A->bf = B->bf = E->bf = 0;
-                    } else if (E->bf == 1) {
-                        E->bf = A->bf = 0;
-                        B->bf = -1;
-                    } else if (E->bf == -1) {
-                        A->bf = -1;
-                        B->bf = 0;
-                        E->bf = 0;
-                    } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
-                } else {
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    roteRight(A, B);
-                    A->bf = -1;
-                    B->bf = 1;
-                }
-            }
         } else {
 //            cout << "Modify on node " << lastNonZero->value << endl;
 //            lastNonZero->print();
             cur = lastNonZero;
-            while (cur != nullptr) {
-                if (cur->value < val) {
-                    cur->bf++;
-                    cur = cur->rightChild;
-                } else if (cur->value == val) {
-                    //注意这里应该是搜索到了插入的节点
-                    break;
-                } else {
-                    cur->bf--;
-                    cur = cur->leftChild;
-                }
+        }
+        while (cur != nullptr) {
+            if (cur->value < val) {
+                cur->bf++;
+                cur = cur->rightChild;
+            } else if (cur->value == val) {
+                //注意这里应该是搜索到了插入的节点
+                break;
+            } else {
+                cur->bf--;
+                cur = cur->leftChild;
             }
+        }
 //            cout << "The bf of last none zero is " << lastNonZero->bf << endl;
-            if (lastNonZero->bf == 2) {
+        if (lastNonZero->bf == 2) {
+            //向右侧插入
 
-                if (lastNonZero->rightChild->bf == 1) {
-                    Node *A = lastNonZero;
-                    Node *C = lastNonZero->rightChild;
-                    roteLeft(lastNonZero, lastNonZero->rightChild);
-                    //调整bf
-                    A->bf = 0;
-                    C->bf = 0;
-                } else if (lastNonZero->rightChild->bf == -1){
-                    Node *A = lastNonZero;
-                    Node *C = A->rightChild;
-                    Node *D = C->leftChild;
-                    roteRight(C, D);
-                    roteLeft(A, D);
-                    if (D->bf == 0) {
-                        A->bf = D->bf = C->bf = 0;
-                    } else if (D->bf == 1) {
-                        A->bf = -1;
-                        D->bf = C->bf = 0;
-                    } else if (D->bf == -1) {
-                        C->bf = -1;
-                        A->bf = D->bf = 0;
-                    }
-                } else {
-                    Node *A = lastNonZero;
-                    Node *C = lastNonZero->rightChild;
-                    roteLeft(lastNonZero, lastNonZero->rightChild);
-                    //调整bf
-                    A->bf = 1;
-                    C->bf = -1;
-                }
-            } else if (lastNonZero->bf == -2) {
-                if (lastNonZero->leftChild->bf == -1) {
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    roteRight(A, B);
-                    A->bf = 0;
-                    B->bf = 0;
-                } else if (lastNonZero->leftChild->bf == 1){
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    Node *E = B->rightChild;
-                    roteLeft(B, E);
-                    roteRight(A, E);
-                    if (E->bf == 0) {
-                        A->bf = B->bf = E->bf = 0;
-                    } else if (E->bf == 1) {
-                        E->bf = A->bf = 0;
-                        B->bf = -1;
-                    } else if (E->bf == -1) {
-                        A->bf = -1;
-                        B->bf = 0;
-                        E->bf = 0;
-                    } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
-                } else {
-                    Node *A = lastNonZero;
-                    Node *B = A->leftChild;
-                    roteRight(A, B);
+            if (lastNonZero->rightChild->bf == 1) {
+                Node *A = lastNonZero;
+                Node *C = lastNonZero->rightChild;
+                roteLeft(lastNonZero, lastNonZero->rightChild);
+                //调整bf
+                A->bf = 0;
+                C->bf = 0;
+            } else if (lastNonZero->rightChild->bf == -1){
+                Node *A = lastNonZero;
+                Node *C = A->rightChild;
+                Node *D = C->leftChild;
+                roteRight(C, D);
+                roteLeft(A, D);
+                if (D->bf == 0) {
+                    A->bf = D->bf = C->bf = 0;
+                } else if (D->bf == 1) {
                     A->bf = -1;
-                    B->bf = 1;
+                    D->bf = C->bf = 0;
+                } else if (D->bf == -1) {
+                    C->bf = -1;
+                    A->bf = D->bf = 0;
                 }
+            } else {
+                Node *A = lastNonZero;
+                Node *C = lastNonZero->rightChild;
+                roteLeft(lastNonZero, lastNonZero->rightChild);
+                //调整bf
+                A->bf = 1;
+                C->bf = -1;
+            }
+        } else if (lastNonZero->bf == -2) {
+            if (lastNonZero->leftChild->bf == -1) {
+                Node *A = lastNonZero;
+                Node *B = A->leftChild;
+                roteRight(A, B);
+                A->bf = 0;
+                B->bf = 0;
+            } else if (lastNonZero->leftChild->bf == 1){
+                Node *A = lastNonZero;
+                Node *B = A->leftChild;
+                Node *E = B->rightChild;
+                roteLeft(B, E);
+                roteRight(A, E);
+                if (E->bf == 0) {
+                    A->bf = B->bf = E->bf = 0;
+                } else if (E->bf == 1) {
+                    E->bf = A->bf = 0;
+                    B->bf = 1;
+                } else if (E->bf == -1) {
+                    A->bf = 1;
+                    B->bf = 0;
+                    E->bf = 0;
+                } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
+            } else {
+                Node *A = lastNonZero;
+                Node *B = A->leftChild;
+                roteRight(A, B);
+                A->bf = -1;
+                B->bf = 1;
             }
         }
     }
