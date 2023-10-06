@@ -3,7 +3,7 @@
 //#define DEBUG
 //#define TEST
 #define SUBMIT
-#define T2
+//#define T2
 
 #include <utility>
 /*
@@ -11,7 +11,6 @@
  */
 
 using namespace std;
-
 
 class Exception : std::exception {
 private:
@@ -42,7 +41,7 @@ struct Node {
     explicit Node(int val_ = 0) : value(val_), leftChild(nullptr), rightChild(nullptr), parent(nullptr), bf(0) {};
 
     void print() {
-        cout << "Node at " << this << " Value = " << value << " bf = " << bf << endl;
+        cout << "Node at " << this << " Value = " << value << " bf = " << bf << " Parent = " << this->parent << endl;
     }
 };
 
@@ -73,7 +72,9 @@ AVL::AVL() : root(nullptr) {}
  * 注意在左旋的过程中不做balance factor的调整，只完成连接过程
  */
 void AVL::roteLeft(Node *A, Node *C) {
-//    cout << "Rote left \n";
+#ifdef DEBUG
+    cout << "Rote left \n";
+#endif
     if (A == this->root) {
         //处理A是根节点的情况
         Node *B = A->leftChild;
@@ -86,9 +87,9 @@ void AVL::roteLeft(Node *A, Node *C) {
         A->rightChild = D;
         //重新设立父节点
         A->parent = C;
+        C->parent = nullptr;
         if (B != nullptr)
             B->parent = A;
-        C->parent = nullptr;
         if (D != nullptr)
             D->parent = A;
         if (E != nullptr)
@@ -107,9 +108,9 @@ void AVL::roteLeft(Node *A, Node *C) {
         A->rightChild = D;
         //重新设立父节点
         A->parent = C;
+        C->parent = parent;
         if (B != nullptr)
             B->parent = A;
-        C->parent = parent;
         if (D != nullptr)
             D->parent = A;
         if (E != nullptr)
@@ -127,7 +128,9 @@ void AVL::roteLeft(Node *A, Node *C) {
  *B是A的左子节点，同样只做连接，不做balance factor的调整
  */
 void AVL::roteRight(Node *A, Node *B) {
-//    cout << "rote right \n";
+#ifdef DEBUG
+    cout << "Rote right \n";
+#endif
     if (A == this->root) {
         //处理A是根节点
         Node *D = B->leftChild;
@@ -143,7 +146,8 @@ void AVL::roteRight(Node *A, Node *B) {
         B->parent = nullptr;
         if (C != nullptr)
             C->parent = A;
-        D->parent = B;
+        if (D != nullptr)
+            D->parent = B;
         if (E != nullptr)
             E->parent = A;
         this->root = B;
@@ -240,19 +244,55 @@ bool AVL::Insert(int val) {
                 //调整bf
                 A->bf = 0;
                 C->bf = 0;
-            } else if (lastNonZero->rightChild->bf == -1){
+            } else if (lastNonZero->rightChild->bf == -1) {
                 Node *A = lastNonZero;
                 Node *C = A->rightChild;
                 Node *D = C->leftChild;
+#ifdef DEBUG
+                cout << "Now the A is ";
+                A->print();
+                cout << "\n C is ";
+                C->print();
+                cout << "\n D is ";
+                D->print();
+                cout << endl;
+                cout << "A->parent = " << A->parent << endl;
+#endif
                 roteRight(C, D);
+#ifdef DEBUG
+                cout << "A: " << "Value = " << A->value << " left = " << A->leftChild << " right = " << A->rightChild
+                     << " Parent = " << A->parent << endl;
+                cout << "C: " << "Value = " << C->value << " left = " << C->leftChild << " right = " << C->rightChild
+                     << endl;
+                cout << "D: " << "Value = " << D->value << " left = " << D->leftChild << " right = " << D->rightChild
+                     << " parent = " << D->parent << endl;
+                if (D->parent != nullptr) {
+                    Node *p = D->parent;
+                    cout << "Parent : " << p << " value = " << p->value << " left = " << p->leftChild << " right ="
+                         << p->rightChild << endl;
+                }
+#endif
                 roteLeft(A, D);
+#ifdef DEBUG
+                cout << "A: " << "Value = " << A->value << " left = " << A->leftChild << " right = " << A->rightChild
+                     << " Parent = " << A->parent << endl;
+                cout << "C: " << "Value = " << C->value << " left = " << C->leftChild << " right = " << C->rightChild
+                     << endl;
+                cout << "D: " << "Value = " << D->value << " left = " << D->leftChild << " right = " << D->rightChild
+                     << " parent = " << D->parent << endl;
+                if (D->parent != nullptr) {
+                    Node *p = D->parent;
+                    cout << "Parent : " << p << " value = " << p->value << " left = " << p->leftChild << " right ="
+                         << p->rightChild << endl;
+                }
+#endif
                 if (D->bf == 0) {
                     A->bf = D->bf = C->bf = 0;
                 } else if (D->bf == 1) {
                     A->bf = -1;
                     D->bf = C->bf = 0;
                 } else if (D->bf == -1) {
-                    C->bf = -1;
+                    C->bf = 1;
                     A->bf = D->bf = 0;
                 }
             } else {
@@ -270,7 +310,7 @@ bool AVL::Insert(int val) {
                 roteRight(A, B);
                 A->bf = 0;
                 B->bf = 0;
-            } else if (lastNonZero->leftChild->bf == 1){
+            } else if (lastNonZero->leftChild->bf == 1) {
                 Node *A = lastNonZero;
                 Node *B = A->leftChild;
                 Node *E = B->rightChild;
@@ -280,12 +320,12 @@ bool AVL::Insert(int val) {
                     A->bf = B->bf = E->bf = 0;
                 } else if (E->bf == 1) {
                     E->bf = A->bf = 0;
-                    B->bf = 1;
+                    B->bf = -1;
                 } else if (E->bf == -1) {
                     A->bf = 1;
                     B->bf = 0;
                     E->bf = 0;
-                } else throw Exception("Not a valid bf",Exception::CANNOT_REACH_HERE);
+                } else throw Exception("Not a valid bf", Exception::CANNOT_REACH_HERE);
             } else {
                 Node *A = lastNonZero;
                 Node *B = A->leftChild;
@@ -340,6 +380,10 @@ void AVL::print2(Node *node) {
         cout << node->rightChild->value << ' ';
     }
     cout << "bf = " << node->bf;
+    cout << " parent = ";
+    if (node->parent == nullptr) {
+        cout << "nullptr";
+    } else cout << node->parent->value;
     cout << endl;
     print2(node->rightChild);
 }
@@ -373,20 +417,31 @@ bool AVL::Delete(int val) {
         if (cur == toDelete) {
             bool isLeft = (cur == cur->parent->leftChild);
             if (cur->leftChild == nullptr && cur->rightChild == nullptr) {
-                if (isLeft) cur->parent->leftChild = nullptr;
-                else cur->parent->rightChild = nullptr;
+                if (isLeft) {
+                    cur->parent->leftChild = nullptr;
+                } else cur->parent->rightChild = nullptr;
                 delete cur;
                 theNode->value = val_;
                 return true;
             } else if (cur->leftChild == nullptr) {
-                if (isLeft) cur->parent->leftChild = cur->rightChild;
-                else cur->parent->rightChild = cur->rightChild;
+                if (isLeft) {
+                    cur->parent->leftChild = cur->rightChild;
+                    cur->rightChild->parent = cur->parent;
+                } else {
+                    cur->parent->rightChild = cur->rightChild;
+                    cur->rightChild->parent = cur->parent;
+                }
                 delete cur;
                 theNode->value = val_;
                 return true;
             } else if (cur->rightChild == nullptr) {
-                if (isLeft) cur->parent->leftChild = cur->leftChild;
-                else cur->parent->rightChild = cur->leftChild;
+                if (isLeft) {
+                    cur->parent->leftChild = cur->leftChild;
+                    cur->leftChild->parent = cur->parent;
+                } else {
+                    cur->parent->rightChild = cur->leftChild;
+                    cur->leftChild->parent = cur->parent;
+                }
                 delete cur;
                 theNode->value = val_;
                 return true;
@@ -606,30 +661,15 @@ int main() {
     // 将in.txt内容重定向到cin
     // 将cout重定向到out.txt
     cin.rdbuf(in.rdbuf());
+#ifndef DEBUG
     cout.rdbuf(out.rdbuf());
 #endif
-//    avl.Insert(1);
-//    avl.print2();
-//    cout << "Insert 3" << endl;
-//    avl.Insert(3);
-//    avl.print2();
-//    cout << "Insert 5" << endl;
-//    avl.Insert(5);
-//    avl.print2();
-//    cout << "Insert 2" << endl;
-//    avl.Insert(2);
-//    avl.print2();
-//    cout << "Insert 4" << endl;
-//    avl.Insert(4);
-//    for (int i = 6; i < 10; ++i) {
-//        avl.Insert(i);
-//    }
+#endif
 #ifdef TEST
     AVL avl;
     avl.Insert(1);
     avl.Insert(3);
     avl.Insert(2);
-    avl.Insert(4);
     avl.print();
     avl.print2();
     try {
@@ -648,6 +688,7 @@ int main() {
     for (int i = 0; i < N; ++i) {
         cin >> operation >> value;
 #ifdef DEBUG
+        cout << "N = " << i + 1 << endl;
         cout << operation << ' ' << value << endl;
 #endif
         if (operation == 1) {
